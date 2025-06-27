@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ExternalLink, MessageSquare, TrendingUp, User, Clock } from 'lucide-react'
-import { formatTimeAgo } from '@/lib/utils'
+import { formatTimeAgo, formatScore } from '@/lib/utils'
 import type { Story } from '@/lib/db'
 
 interface StoryItemProps {
@@ -65,7 +65,7 @@ export function StoryItem({ story, index }: StoryItemProps) {
           <div className="text-xs text-gray-500 space-x-3">
             <span className="inline-flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
-              {story.score} 分
+              {formatScore(story.score)}
             </span>
             
             <span className="inline-flex items-center gap-1">
@@ -83,7 +83,7 @@ export function StoryItem({ story, index }: StoryItemProps) {
               className="inline-flex items-center gap-1 hover:text-blue-600"
             >
               <MessageSquare className="h-3 w-3" />
-              {story.descendants} 评论
+              {story.descendants}
             </Link>
           </div>
         </div>

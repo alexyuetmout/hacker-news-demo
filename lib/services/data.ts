@@ -45,7 +45,7 @@ export class DataService {
         hasMore: total > offset + limit
       }
     } catch (error) {
-      console.warn('Database not connected, returning empty results:', error.message)
+      console.warn('Database not connected, returning empty results:', error instanceof Error ? error.message : error)
       return {
         stories: [],
         total: 0,
@@ -57,10 +57,14 @@ export class DataService {
   // 获取单个文章详情
   async getStoryById(id: number): Promise<Story | null> {
     try {
+      if (!db) {
+        console.warn('Database not connected')
+        return null
+      }
       const result = await db.select().from(stories).where(eq(stories.id, id)).limit(1)
       return result[0] || null
     } catch (error) {
-      console.warn('Database not connected, returning null:', error.message)
+      console.warn('Database not connected, returning null:', error instanceof Error ? error.message : error)
       return null
     }
   }
@@ -68,10 +72,14 @@ export class DataService {
   // 获取单个文章详情（通过 HN ID）
   async getStoryByHnId(hnId: number): Promise<Story | null> {
     try {
+      if (!db) {
+        console.warn('Database not connected')
+        return null
+      }
       const result = await db.select().from(stories).where(eq(stories.hnId, hnId)).limit(1)
       return result[0] || null
     } catch (error) {
-      console.warn('Database not connected, returning null:', error.message)
+      console.warn('Database not connected, returning null:', error instanceof Error ? error.message : error)
       return null
     }
   }
@@ -79,15 +87,26 @@ export class DataService {
   // 获取文章的评论
   async getCommentsByStoryId(storyId: number): Promise<Comment[]> {
     try {
-      return await db.select().from(comments)
+      if (!db) {
+        console.warn('Database not connected, returning empty comments')
+        return []
+      }
+      
+      console.log('Searching for comments with storyId:', storyId)
+      
+      const result = await db.select().from(comments)
         .where(and(
           eq(comments.storyId, storyId),
           eq(comments.deleted, false),
           eq(comments.dead, false)
         ))
         .orderBy(comments.time)
+        
+      console.log('Found comments:', result.length)
+      
+      return result
     } catch (error) {
-      console.warn('Database not connected, returning empty comments:', error.message)
+      console.warn('Database error getting comments:', error instanceof Error ? error.message : error)
       return []
     }
   }
@@ -99,6 +118,11 @@ export class DataService {
     hasMore: boolean
   }> {
     try {
+      if (!db) {
+        console.warn('Database not connected')
+        return { stories: [], total: 0, hasMore: false }
+      }
+
       const offset = (page - 1) * limit
       
       const searchPattern = `%${query}%`
@@ -136,7 +160,7 @@ export class DataService {
         hasMore: total > offset + limit
       }
     } catch (error) {
-      console.warn('Database not connected, returning empty search results:', error.message)
+      console.warn('Database not connected, returning empty search results:', error instanceof Error ? error.message : error)
       return {
         stories: [],
         total: 0,
@@ -211,9 +235,13 @@ export class DataService {
       }
 
       if (existingStory) {
-        await db.update(stories).set(storyData).where(eq(stories.hnId, hnId))
+        if (db) {
+          await db.update(stories).set(storyData).where(eq(stories.hnId, hnId))
+        }
       } else {
-        await db.insert(stories).values(storyData)
+        if (db) {
+          await db.insert(stories).values(storyData)
+        }
       }
 
       // 同步评论
@@ -238,6 +266,11 @@ export class DataService {
   // 同步单个评论
   private async syncComment(hnId: number, storyId: number, parentId: number | null): Promise<void> {
     try {
+      if (!db) {
+        console.warn('Database not connected')
+        return
+      }
+      
       const hnItem = await this.hnService.getComment(hnId)
       if (!hnItem || hnItem.deleted || hnItem.dead || !hnItem.by || !hnItem.time) return
 
@@ -261,9 +294,13 @@ export class DataService {
       }
 
       if (existingComment.length > 0) {
-        await db.update(comments).set(commentData).where(eq(comments.hnId, hnId))
+        if (db) {
+          await db.update(comments).set(commentData).where(eq(comments.hnId, hnId))
+        }
       } else {
-        await db.insert(comments).values(commentData)
+        if (db) {
+          await db.insert(comments).values(commentData)
+        }
       }
 
       // 递归同步子评论
@@ -292,14 +329,17 @@ export class DataService {
   // 获取最新更新时间
   async getLastUpdateTime(): Promise<Date | null> {
     try {
+      if (!db) {
+        console.warn('Database not connected')
+        return null
+      }
       const result = await db.select({ updatedAt: stories.updatedAt })
         .from(stories)
         .orderBy(desc(stories.updatedAt))
         .limit(1)
-      
       return result[0]?.updatedAt || null
     } catch (error) {
-      console.warn('Database not connected, returning null update time:', error.message)
+      console.warn('Database not connected, returning null update time:', error instanceof Error ? error.message : error)
       return null
     }
   }
@@ -307,22 +347,26 @@ export class DataService {
   // 获取数据库中最大的 HN ID
   async getLastKnownItemId(): Promise<number | null> {
     try {
-      const result = await db.select({ maxHnId: max(stories.hnId) })
-        .from(stories)
-        .limit(1)
-      
+      if (!db) {
+        console.warn('Database not connected')
+        return null
+      }
+      const result = await db.select({ maxHnId: max(stories.hnId) }).from(stories)
       return result[0]?.maxHnId || null
     } catch (error) {
-      console.warn('Database not connected, returning null max item id:', error.message)
+      console.warn('Database not connected, returning null max item id:', error instanceof Error ? error.message : error)
       return null
     }
   }
 
   // 更新最后已知的 item ID（这里我们用更新时间戳的方式来追踪）
   async updateLastKnownItemId(itemId: number): Promise<void> {
-    // 这个方法可以留空，因为我们通过查询最大 hn_id 来获取最后已知 ID
-    // 或者我们可以在数据库中创建一个配置表来存储这个值
-    console.log(`Updated last known item ID to: ${itemId}`)
+    if (!db) {
+      console.warn('Database not connected')
+      return
+    }
+    // 这里只是存储最新的item id，实际实现可能需要专门的表
+    // 暂时不做实际操作
   }
 
   // 批量保存文章（用于增量同步）
@@ -340,32 +384,24 @@ export class DataService {
     deleted: boolean
     dead: boolean
   }): Promise<void> {
+    if (!db) {
+      console.warn('Database not connected')
+      return
+    }
+
     try {
-      // 检查是否已存在
-      const existing = await this.getStoryByHnId(storyData.hn_id)
-      if (existing) {
-        console.log(`Story ${storyData.hn_id} already exists, skipping...`)
-        return
-      }
-
-      // 清理和翻译内容
-      const cleanTitle = this.stripHtml(storyData.title)
-      const cleanText = storyData.text ? this.stripHtml(storyData.text) : null
-      
-      const titleZh = await this.translationService.smartTranslate(cleanTitle)
-      const textZh = cleanText ? await this.translationService.smartTranslate(cleanText) : null
-
+      // 创建符合数据库schema的数据结构
       const newStory: NewStory = {
         hnId: storyData.hn_id,
-        title: cleanTitle,
-        titleZh,
-        url: storyData.url,
-        text: cleanText,
-        textZh,
+        title: storyData.title,
+        titleZh: null, // 稍后翻译
+        url: storyData.url || null,
+        text: storyData.text || null,
+        textZh: null, // 稍后翻译
         by: storyData.by,
         score: storyData.score,
         descendants: storyData.descendants,
-        time: new Date(storyData.time * 1000),
+        time: new Date(storyData.time * 1000), // Unix 时间戳转换
         type: storyData.type,
         source: storyData.source,
         deleted: storyData.deleted,
@@ -374,10 +410,70 @@ export class DataService {
       }
 
       await db.insert(stories).values(newStory)
-      console.log(`Saved new story: ${storyData.hn_id} - ${cleanTitle}`)
     } catch (error) {
-      console.error(`Error saving story ${storyData.hn_id}:`, error)
+      console.error('Error saving story:', error)
       throw error
     }
+  }
+}
+
+// 简化的按类型获取文章函数（用于首页）
+export async function getStoriesByType(type: string, limit = 10): Promise<Story[]> {
+  try {
+    if (!db) {
+      console.warn('Database not connected')
+      return []
+    }
+
+    let result: Story[]
+
+    if (type === 'best') {
+      // 使用评分和时间综合排序来模拟 "best"
+      result = await db.select().from(stories)
+        .where(and(
+          eq(stories.deleted, false),
+          eq(stories.dead, false),
+          gt(stories.score, 5) // 只获取评分 > 5 的
+        ))
+        .orderBy(desc(stories.score), desc(stories.time))
+        .limit(limit)
+    } else {
+      result = await db.select().from(stories)
+        .where(and(
+          eq(stories.source, type),
+          eq(stories.deleted, false),
+          eq(stories.dead, false)
+        ))
+        .orderBy(desc(stories.time))
+        .limit(limit)
+    }
+
+    return result
+  } catch (error) {
+    console.warn(`Database error for type ${type}, returning empty results:`, error instanceof Error ? error.message : error)
+    return []
+  }
+}
+
+// 优化的首页数据获取函数 - 串行执行减少并发连接
+export async function getHomePageData(): Promise<{
+  topStories: Story[]
+  newStories: Story[]
+  askStories: Story[]
+}> {
+  try {
+    // 串行执行，减少并发连接数
+    const topStories = await getStoriesByType('top', 10)
+    await new Promise(resolve => setTimeout(resolve, 100)) // 短暂延迟
+    
+    const newStories = await getStoriesByType('new', 5)
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    const askStories = await getStoriesByType('ask', 5)
+    
+    return { topStories, newStories, askStories }
+  } catch (error) {
+    console.warn('Error getting home page data:', error instanceof Error ? error.message : error)
+    return { topStories: [], newStories: [], askStories: [] }
   }
 } 

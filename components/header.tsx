@@ -1,21 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Search, Hash, RefreshCw } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
-interface HeaderProps {
-  lastUpdateTime?: Date | null
-}
-
-export function Header({ lastUpdateTime }: HeaderProps) {
+export default function Header() {
+  const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,82 +15,56 @@ export function Header({ lastUpdateTime }: HeaderProps) {
     }
   }
 
-  const categories = [
-    { key: 'home', label: '首页', href: '/' },
-    { key: 'top', label: '热门', href: '/category/top' },
-    { key: 'new', label: '最新', href: '/category/new' },
-    { key: 'best', label: '最佳', href: '/category/best' },
-    { key: 'ask', label: '问答', href: '/category/ask' },
-    { key: 'show', label: '展示', href: '/category/show' },
-    { key: 'job', label: '工作', href: '/category/job' },
-  ]
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        {/* Logo 和网站名 */}
-        <div className="flex items-center space-x-2">
-          <Link href="/" className="flex items-center space-x-2">
-            <Hash className="h-6 w-6 text-orange-500" />
-            <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-              中文黑客新闻
-            </span>
+    <header className="header-simple">
+      <div className="container py-3">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <div className="logo-icon">
+              <span>H</span>
+            </div>
+            <span className="logo-text">Hacker News</span>
           </Link>
-        </div>
 
-        {/* 导航分类 */}
-        <nav className="hidden md:flex items-center space-x-1">
-          {categories.map((category) => (
-            <Link
-              key={category.key}
-              href={category.href}
-              className="px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {category.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* 搜索框 */}
-        <div className="flex items-center space-x-4">
-          <form onSubmit={handleSearch} className="relative">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                type="search"
-                placeholder="搜索文章..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-64"
-              />
-            </div>
-          </form>
-
-          {/* 最后更新时间 */}
-          {lastUpdateTime && (
-            <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-500">
-              <RefreshCw className="h-4 w-4" />
-              <span>更新于 {lastUpdateTime.toLocaleString('zh-CN')}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 移动端导航 */}
-      <div className="md:hidden border-t bg-background">
-        <div className="container px-4 py-2">
-          <nav className="flex items-center space-x-1 overflow-x-auto">
-            {categories.map((category) => (
-              <Link
-                key={category.key}
-                href={category.href}
-                className="flex-shrink-0 px-3 py-1 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                {category.label}
-              </Link>
-            ))}
+          {/* Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/category/top" className="nav-link">热门</Link>
+            <Link href="/category/new" className="nav-link">最新</Link>
+            <Link href="/category/best" className="nav-link">精选</Link>
+            <Link href="/category/ask" className="nav-link">问答</Link>
+            <Link href="/category/show" className="nav-link">展示</Link>
+            <Link href="/category/job" className="nav-link">招聘</Link>
           </nav>
+
+          {/* Search */}
+          <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <input
+              type="search"
+              placeholder="搜索故事..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-btn">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </button>
+          </form>
         </div>
+
+        {/* Mobile Navigation */}
+        <nav className="md:hidden mt-3 pt-3 border-t border-gray-100">
+          <div className="flex gap-4 overflow-x-auto">
+            <Link href="/category/top" className="nav-link-mobile">热门</Link>
+            <Link href="/category/new" className="nav-link-mobile">最新</Link>
+            <Link href="/category/best" className="nav-link-mobile">精选</Link>
+            <Link href="/category/ask" className="nav-link-mobile">问答</Link>
+            <Link href="/category/show" className="nav-link-mobile">展示</Link>
+            <Link href="/category/job" className="nav-link-mobile">招聘</Link>
+          </div>
+        </nav>
       </div>
     </header>
   )

@@ -1,6 +1,4 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Home, Search } from 'lucide-react'
 
 export default function NotFound() {
   return (
@@ -15,18 +13,12 @@ export default function NotFound() {
         </div>
         
         <div className="space-y-4">
-          <Link href="/">
-            <Button className="w-full">
-              <Home className="mr-2 h-4 w-4" />
-              返回首页
-            </Button>
+          <Link href="/" className="btn btn-primary w-full block text-center">
+            🏠 返回首页
           </Link>
           
-          <Link href="/search">
-            <Button variant="outline" className="w-full">
-              <Search className="mr-2 h-4 w-4" />
-              搜索文章
-            </Button>
+          <Link href="/search" className="btn btn-secondary w-full block text-center">
+            🔍 搜索文章
           </Link>
         </div>
       </div>
