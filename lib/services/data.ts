@@ -1,5 +1,5 @@
 import { db, stories, comments, translations, type Story, type Comment, type NewStory, type NewComment } from '@/lib/db'
-import { eq, desc, and, or, ilike, count, gt } from 'drizzle-orm'
+import { eq, desc, and, or, ilike, count, gt, max } from 'drizzle-orm'
 import { HackerNewsService, type HNItem } from './hacker-news'
 import { TranslationService } from './translation'
 
@@ -289,8 +289,6 @@ export class DataService {
       .trim()
   }
 
-
-
   // 获取最新更新时间
   async getLastUpdateTime(): Promise<Date | null> {
     try {
@@ -303,6 +301,83 @@ export class DataService {
     } catch (error) {
       console.warn('Database not connected, returning null update time:', error.message)
       return null
+    }
+  }
+
+  // 获取数据库中最大的 HN ID
+  async getLastKnownItemId(): Promise<number | null> {
+    try {
+      const result = await db.select({ maxHnId: max(stories.hnId) })
+        .from(stories)
+        .limit(1)
+      
+      return result[0]?.maxHnId || null
+    } catch (error) {
+      console.warn('Database not connected, returning null max item id:', error.message)
+      return null
+    }
+  }
+
+  // 更新最后已知的 item ID（这里我们用更新时间戳的方式来追踪）
+  async updateLastKnownItemId(itemId: number): Promise<void> {
+    // 这个方法可以留空，因为我们通过查询最大 hn_id 来获取最后已知 ID
+    // 或者我们可以在数据库中创建一个配置表来存储这个值
+    console.log(`Updated last known item ID to: ${itemId}`)
+  }
+
+  // 批量保存文章（用于增量同步）
+  async saveStory(storyData: {
+    hn_id: number
+    title: string
+    url?: string | null
+    text?: string | null
+    by: string
+    score: number
+    descendants: number
+    time: number
+    type: string
+    source: string
+    deleted: boolean
+    dead: boolean
+  }): Promise<void> {
+    try {
+      // 检查是否已存在
+      const existing = await this.getStoryByHnId(storyData.hn_id)
+      if (existing) {
+        console.log(`Story ${storyData.hn_id} already exists, skipping...`)
+        return
+      }
+
+      // 清理和翻译内容
+      const cleanTitle = this.stripHtml(storyData.title)
+      const cleanText = storyData.text ? this.stripHtml(storyData.text) : null
+      
+      const titleZh = await this.translationService.smartTranslate(cleanTitle)
+      const textZh = cleanText ? await this.translationService.smartTranslate(cleanText) : null
+
+      const newStory: NewStory = {
+        hnId: storyData.hn_id,
+        title: cleanTitle,
+        titleZh,
+        url: storyData.url,
+        text: cleanText,
+        textZh,
+        by: storyData.by,
+        score: storyData.score,
+        descendants: storyData.descendants,
+        time: new Date(storyData.time * 1000),
+        type: storyData.type,
+        source: storyData.source,
+        deleted: storyData.deleted,
+        dead: storyData.dead,
+        updatedAt: new Date(),
+      }
+
+      await db.insert(stories).values(newStory)
+      console.log(`Saved new story: ${storyData.hn_id} - ${cleanTitle}`)
+    } catch (error) {
+      console.error(`Error saving story ${storyData.hn_id}:`, error)
+      throw error
     }
   }
 } 

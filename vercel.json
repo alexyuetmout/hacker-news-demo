@@ -1,33 +1,50 @@
 {
   "crons": [
     {
-      "path": "/api/sync?type=top&limit=100",
-      "schedule": "0 */1 * * *"
+      "path": "/api/sync/fast?type=new&limit=3",
+      "schedule": "* * * * *"
     },
     {
-      "path": "/api/sync?type=new&limit=50",
-      "schedule": "15 */2 * * *"
+      "path": "/api/sync?type=top&limit=50",
+      "schedule": "0 */2 * * *"
     },
     {
-      "path": "/api/sync?type=best&limit=50",
+      "path": "/api/sync?type=new&limit=30",
+      "schedule": "30 */3 * * *"
+    },
+    {
+      "path": "/api/sync?type=best&limit=20",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/sync?type=ask&limit=20",
+      "schedule": "15 */4 * * *"
+    },
+    {
+      "path": "/api/sync?type=show&limit=20",
       "schedule": "30 */4 * * *"
     },
     {
-      "path": "/api/sync?type=ask&limit=50",
-      "schedule": "45 */3 * * *"
+      "path": "/api/sync?type=job&limit=10",
+      "schedule": "0 */8 * * *"
     },
     {
-      "path": "/api/sync?type=show&limit=50",
-      "schedule": "0 */3 * * *"
-    },
-    {
-      "path": "/api/sync?type=job&limit=30",
-      "schedule": "15 */6 * * *"
+      "path": "/api/sync/cleanup",
+      "schedule": "0 2 * * *"
     }
   ],
   "functions": {
     "app/api/sync/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/sync/fast/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/sync/incremental/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/sync/cleanup/route.ts": {
+      "maxDuration": 120
     }
   }
 } 

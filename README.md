@@ -80,8 +80,10 @@
 
 ### 🔄 数据同步
 
+- **实时更新**：每分钟检查最新文章（快速同步，无翻译）
 - **智能调度**：不同类型内容使用不同同步频率
 - **增量更新**：只同步新增和更新的内容
+- **自动清理**：定期清理旧数据，保持合理存储容量
 - **错误重试**：网络异常时自动重试机制
 - **翻译缓存**：避免重复翻译，节省 API 成本
 
@@ -244,20 +246,53 @@ NEXT_PUBLIC_APP_URL="https://your-app.vercel.app"
 
 ### 5. 配置 Cron Jobs
 
-在 `vercel.json` 中已配置自动同步任务：
+在 `vercel.json` 中已配置多层次自动同步任务：
 
 ```json
 {
   "crons": [
     {
+      "path": "/api/sync/fast?type=new&limit=3",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/sync?type=top&limit=50",
-      "schedule": "0 * * * *"
+      "schedule": "0 */2 * * *"
     }
   ]
 }
 ```
 
+**同步策略**：
+
+- **每分钟**：快速同步最新 3 篇文章（无翻译）
+- **每 2 小时**：完整同步热门文章（含翻译）
+- **每 3-8 小时**：同步其他分类内容
+- **每天凌晨 2 点**：自动清理旧数据，保持合理容量
+
 部署完成后，Cron Jobs 将自动开始工作！
+
+## 📊 数据管理策略
+
+### 存储容量控制
+
+根据 Hacker News API 限制，系统自动维护合理的数据量：
+
+| 分类         | API 限制 | 数据库保留量 | 说明             |
+| ------------ | -------- | ------------ | ---------------- |
+| Top Stories  | 500 条   | 100 条       | 保留最新热门文章 |
+| New Stories  | 500 条   | 100 条       | 保留最新发布文章 |
+| Best Stories | 500 条   | 50 条        | 保留高质量文章   |
+| Ask HN       | 200 条   | 50 条        | 保留问答讨论     |
+| Show HN      | 200 条   | 50 条        | 保留项目展示     |
+| Job Stories  | 200 条   | 30 条        | 保留招聘信息     |
+
+### 自动清理机制
+
+- **定时清理**：每天凌晨 2 点自动执行
+- **保留策略**：删除最老的文章，保留最新内容
+- **关联清理**：自动清理孤立评论和过期翻译缓存
+- **存储优化**：维持数据库在合理大小，避免无限增长
 
 ## 🗄 数据库架构
 
@@ -342,8 +377,21 @@ GET /api/stories/[id]
 ### 手动同步数据
 
 ```bash
-POST /api/sync?type=top&limit=50
-Authorization: Bearer <CRON_SECRET>
+# 完整同步（包含翻译）
+GET /api/sync?type=top&limit=50
+Authorization: Bearer <CRON_SECRET>  # 仅生产环境需要
+
+# 快速同步（无翻译，适合频繁调用）
+GET /api/sync/fast?type=new&limit=5
+Authorization: Bearer <CRON_SECRET>  # 仅生产环境需要
+
+# 增量同步（基于 Firebase maxitem API）
+GET /api/sync/incremental
+Authorization: Bearer <CRON_SECRET>  # 仅生产环境需要
+
+# 数据清理（保持合理存储容量）
+GET /api/sync/cleanup
+Authorization: Bearer <CRON_SECRET>  # 仅生产环境需要
 ```
 
 ## 🎯 可用脚本
@@ -401,11 +449,18 @@ echo $http_proxy
 ### 数据同步问题
 
 ```bash
-# 手动同步特定类型
+# 手动同步特定类型（开发环境）
 curl "http://localhost:3000/api/sync?type=top&limit=5"
+
+# 生产环境同步（需要认证）
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
+  "https://your-app.vercel.app/api/sync?type=top&limit=5"
 
 # 检查数据库中的数据
 psql -d hackernews_zh -c "SELECT COUNT(*) FROM stories;"
+
+# 查看最近同步的文章
+psql -d hackernews_zh -c "SELECT title, type, created_at FROM stories ORDER BY created_at DESC LIMIT 5;"
 ```
 
 ## 📊 项目成果
