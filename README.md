@@ -164,6 +164,174 @@ curl "http://localhost:3000/api/sync?type=ask&limit=5"
 curl "http://localhost:3000/api/sync?type=show&limit=5"
 ```
 
+## 🔄 新上线数据同步和翻译
+
+### 首次部署初始化流程
+
+当项目首次上线时，按以下步骤初始化数据：
+
+#### 1. 一键全量同步（推荐）
+
+```bash
+# 🎯 一键同步所有类型数据 + 自动清理旧数据
+curl "https://your-domain.com/api/sync/full"
+
+# 或者跳过清理步骤
+curl "https://your-domain.com/api/sync/full?skipCleanup=true"
+```
+
+**全量同步配置：**
+
+- 热门文章：100 篇
+- 最新文章：50 篇
+- 精选文章：50 篇
+- Ask HN：50 篇
+- Show HN：50 篇
+- 招聘信息：30 篇
+- **总计：~330 篇**，自动翻译
+
+#### 2. 分类同步（备选方案）
+
+如果需要单独同步某个类型：
+
+```bash
+# 同步热门文章
+curl "https://your-domain.com/api/sync?type=top&limit=100"
+
+# 同步最新文章
+curl "https://your-domain.com/api/sync?type=new&limit=50"
+
+# 同步Ask HN（问答类）
+curl "https://your-domain.com/api/sync?type=ask&limit=50"
+
+# 其他类型...
+```
+
+#### 2. 翻译现有数据（如需要）
+
+如果有未翻译的历史数据，运行翻译脚本：
+
+```bash
+# 翻译已同步但未翻译的数据
+node scripts/translate-existing.js
+```
+
+#### 3. 设置自动同步
+
+**增量同步（推荐方式）**
+
+```bash
+# 每5分钟检查最新内容，自动翻译新数据
+curl "https://your-domain.com/api/sync/incremental"
+```
+
+**定期全量同步（备选方案）**
+
+```bash
+# 每小时同步热门前50
+curl "https://your-domain.com/api/sync?type=top&limit=50"
+
+# 每30分钟同步最新前30
+curl "https://your-domain.com/api/sync?type=new&limit=30"
+```
+
+### 同步接口说明
+
+所有同步接口都**自动包含翻译功能**：
+
+- **`/api/sync`**：同步指定类型文章，新数据自动翻译
+- **`/api/sync/incremental`**：增量同步最新内容，自动翻译
+- **智能翻译**：使用`smartTranslate()`避免重复翻译中文内容
+
+### 生产环境自动化配置
+
+#### Vercel Cron Jobs 配置
+
+在`vercel.json`中添加：
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/sync/incremental",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/sync?type=top&limit=50",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/sync?type=new&limit=30",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}
+```
+
+#### 必需环境变量
+
+```env
+# 数据库连接
+DATABASE_URL="postgresql://user:pass@host:port/db"
+
+# 翻译服务（必需，否则只显示英文）
+OPENAI_API_KEY="your_openai_compatible_key"
+OPENAI_BASE_URL="https://oneapi.gptnb.ai/v1"
+
+# Cron 任务安全密钥（生产环境必需）
+CRON_SECRET="your_random_secret_key"
+```
+
+### 数据清理机制
+
+项目会自动清理旧数据，保持合理的存储容量：
+
+#### 清理依据和限制
+
+```javascript
+const cleanupLimits = {
+  top: 100, // 保留最新100篇热门文章
+  new: 100, // 保留最新100篇最新文章
+  best: 50, // 保留最新50篇精选文章
+  ask: 50, // 保留最新50篇Ask HN
+  show: 50, // 保留最新50篇Show HN
+  job: 30, // 保留最新30篇招聘信息
+  story: 50, // 保留最新50篇其他文章
+};
+```
+
+#### 清理触发条件
+
+- **自动清理**：`/api/sync/full` 接口会自动执行清理
+- **手动清理**：访问 `/api/sync/cleanup` 手动触发
+- **清理逻辑**：当某分类文章数量超过限制时，删除最旧的文章
+
+#### 清理内容
+
+1. **超量文章**：删除各分类中超出限制的最旧文章
+2. **孤立评论**：删除所属文章已被删除的评论
+3. **过期翻译缓存**：删除 30 天前的翻译缓存记录
+
+#### 示例
+
+如果热门文章有 150 篇，会删除最旧的 50 篇，保留最新的 100 篇。
+
+### 监控和维护
+
+- **同步状态**：访问 `/api/sync/incremental` 查看详细信息
+- **全量同步**：访问 `/api/sync/full` 一键更新所有数据
+- **清理状态**：访问 `/api/sync/cleanup` 查看清理结果
+- **翻译进度**：运行 `scripts/translate-existing.js` 显示统计
+- **数据完整性**：检查数据库 `stories` 表的 `title_zh` 和 `text_zh` 字段
+
+### 翻译机制说明
+
+1. **自动翻译**：所有新同步的文章和评论都会自动调用翻译服务
+2. **智能检测**：已有中文内容不会重复翻译，节省 API 费用
+3. **容错处理**：翻译失败时保留原英文内容，不影响功能
+4. **批量翻译**：支持批量翻译提高效率
+5. **技术术语保护**：翻译时保持代码、链接等特殊格式
+
 ### 开发模式说明
 
 - **无数据库**：页面会显示"暂无文章"，但可以查看 UI 设计

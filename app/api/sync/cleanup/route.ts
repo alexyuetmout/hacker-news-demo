@@ -2,16 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    // 验证授权（生产环境需要 cron secret，开发环境可选）
-    if (process.env.NODE_ENV === 'production') {
-      const authHeader = request.headers.get('authorization')
-      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json(
-          { error: '未授权访问' },
-          { status: 401 }
-        )
-      }
-    }
 
     console.log('开始数据清理...')
 
