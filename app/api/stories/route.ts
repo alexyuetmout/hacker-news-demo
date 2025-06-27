@@ -6,7 +6,7 @@ const dataService = new DataService()
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') || 'all'
+    const source = searchParams.get('source') || 'top'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const search = searchParams.get('search')
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       result = await dataService.searchStories(search, page, limit)
     } else {
-      result = await dataService.getStories(type, page, limit)
+      result = await dataService.getStories(source, page, limit)
     }
 
     return NextResponse.json(result)

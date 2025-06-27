@@ -8,7 +8,7 @@ export class DataService {
   private translationService = new TranslationService()
 
   // 获取文章列表
-  async getStories(type?: string, page = 1, limit = 20): Promise<{
+  async getStories(source?: string, page = 1, limit = 20): Promise<{
     stories: Story[]
     total: number
     hasMore: boolean
@@ -20,26 +20,24 @@ export class DataService {
 
       const offset = (page - 1) * limit
       
-      let query = db.select().from(stories)
+      // 构建 where 条件
+      const whereConditions = [
+        eq(stories.deleted, false),
+        eq(stories.dead, false)
+      ]
       
-      if (type && type !== 'all') {
-        query = query.where(eq(stories.type, type))
+      if (source && source !== 'all') {
+        whereConditions.push(eq(stories.source, source))
       }
       
-      const result = await query
-        .where(and(eq(stories.deleted, false), eq(stories.dead, false)))
+      const result = await db.select().from(stories)
+        .where(and(...whereConditions))
         .orderBy(desc(stories.score), desc(stories.time))
         .limit(limit)
         .offset(offset)
 
-      const countQuery = db.select({ count: count() }).from(stories)
-      
-      if (type && type !== 'all') {
-        countQuery.where(eq(stories.type, type))
-      }
-      
-      const [{ count: total }] = await countQuery
-        .where(and(eq(stories.deleted, false), eq(stories.dead, false)))
+      const [{ count: total }] = await db.select({ count: count() }).from(stories)
+        .where(and(...whereConditions))
 
       return {
         stories: result,
@@ -151,6 +149,8 @@ export class DataService {
   async updateStoriesFromHN(type: 'top' | 'new' | 'best' | 'ask' | 'show' | 'job', limit = 50): Promise<void> {
     let storyIds: number[] = []
     
+    // 注意：ask 和 show 类型的文章在 HN API 中实际类型仍然是 'story'
+    // 只是通过不同的端点获取，job 是真正的 'job' 类型
     switch (type) {
       case 'top':
         storyIds = await this.hnService.getTopStories(limit)
@@ -173,12 +173,12 @@ export class DataService {
     }
 
     for (const id of storyIds) {
-      await this.syncStory(id)
+      await this.syncStory(id, type)
     }
   }
 
   // 同步单个文章
-  private async syncStory(hnId: number): Promise<void> {
+  private async syncStory(hnId: number, source: string): Promise<void> {
     try {
       const hnItem = await this.hnService.getStory(hnId)
       if (!hnItem || hnItem.deleted || hnItem.dead || !hnItem.by || !hnItem.time) return
@@ -203,7 +203,8 @@ export class DataService {
         score: hnItem.score || 0,
         descendants: hnItem.descendants || 0,
         time: new Date(hnItem.time * 1000), // 转换 Unix 时间戳
-        type: this.mapStoryType(hnItem),
+        type: hnItem.type || 'story',
+        source, // 记录来源
         deleted: hnItem.deleted || false,
         dead: hnItem.dead || false,
         updatedAt: new Date(),
@@ -288,13 +289,7 @@ export class DataService {
       .trim()
   }
 
-  // 映射文章类型
-  private mapStoryType(item: HNItem): string {
-    if (item.type === 'job') return 'job'
-    if (item.title?.startsWith('Ask HN:')) return 'ask'
-    if (item.title?.startsWith('Show HN:')) return 'show'
-    return 'story'
-  }
+
 
   // 获取最新更新时间
   async getLastUpdateTime(): Promise<Date | null> {

@@ -46,14 +46,33 @@ export function formatScore(score: number): string {
 
 export function getStoryTypeLabel(type: string): string {
   switch (type) {
-    case 'ask':
-      return 'Ask HN'
-    case 'show':
-      return 'Show HN'
     case 'job':
       return '招聘'
     case 'story':
       return '文章'
+    case 'comment':
+      return '评论'
+    case 'poll':
+      return '投票'
+    default:
+      return '其他'
+  }
+}
+
+export function getCategoryLabel(source: string): string {
+  switch (source) {
+    case 'top':
+      return '热门'
+    case 'new':
+      return '最新'
+    case 'best':
+      return '最佳'
+    case 'ask':
+      return '问答'
+    case 'show':
+      return '展示'
+    case 'job':
+      return '工作'
     default:
       return '其他'
   }
@@ -61,14 +80,14 @@ export function getStoryTypeLabel(type: string): string {
 
 export function getStoryTypeColor(type: string): string {
   switch (type) {
-    case 'ask':
-      return 'bg-blue-100 text-blue-800'
-    case 'show':
-      return 'bg-green-100 text-green-800'
     case 'job':
       return 'bg-purple-100 text-purple-800'
     case 'story':
       return 'bg-gray-100 text-gray-800'
+    case 'comment':
+      return 'bg-blue-100 text-blue-800'
+    case 'poll':
+      return 'bg-green-100 text-green-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }

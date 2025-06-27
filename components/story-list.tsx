@@ -10,7 +10,7 @@ interface StoryListProps {
   initialStories: Story[]
   initialTotal: number
   initialHasMore: boolean
-  type?: string
+  source?: string
   searchQuery?: string
 }
 
@@ -18,7 +18,7 @@ export function StoryList({
   initialStories, 
   initialTotal, 
   initialHasMore, 
-  type = 'all',
+  source = 'top',
   searchQuery = ''
 }: StoryListProps) {
   const [stories, setStories] = useState<Story[]>(initialStories)
@@ -30,7 +30,7 @@ export function StoryList({
     setStories(initialStories)
     setHasMore(initialHasMore)
     setPage(2)
-  }, [initialStories, initialHasMore, type, searchQuery])
+  }, [initialStories, initialHasMore, source, searchQuery])
 
   const loadMore = async () => {
     setLoading(true)
@@ -41,8 +41,8 @@ export function StoryList({
         limit: '20'
       })
       
-      if (type !== 'all') {
-        params.set('type', type)
+      if (source && source !== 'all') {
+        params.set('source', source)
       }
       
       if (searchQuery) {

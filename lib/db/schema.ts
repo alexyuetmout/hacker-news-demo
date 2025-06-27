@@ -13,6 +13,7 @@ export const stories = pgTable('stories', {
   descendants: integer('descendants').default(0),
   time: timestamp('time').notNull(),
   type: varchar('type', { length: 20 }).notNull(),
+  source: varchar('source', { length: 20 }).notNull(), // 来源: top, new, best, ask, show, job
   deleted: boolean('deleted').default(false),
   dead: boolean('dead').default(false),
   createdAt: timestamp('created_at').defaultNow(),
@@ -20,6 +21,7 @@ export const stories = pgTable('stories', {
 }, (table) => ({
   hnIdIdx: index('stories_hn_id_idx').on(table.hnId),
   typeIdx: index('stories_type_idx').on(table.type),
+  sourceIdx: index('stories_source_idx').on(table.source),
   scoreIdx: index('stories_score_idx').on(table.score),
   timeIdx: index('stories_time_idx').on(table.time),
 }))

@@ -25,11 +25,13 @@ export function Header({ lastUpdateTime }: HeaderProps) {
   }
 
   const categories = [
-    { key: 'all', label: '全部', href: '/' },
-    { key: 'story', label: '文章', href: '/category/story' },
-    { key: 'ask', label: 'Ask HN', href: '/category/ask' },
-    { key: 'show', label: 'Show HN', href: '/category/show' },
-    { key: 'job', label: '招聘', href: '/category/job' },
+    { key: 'home', label: '首页', href: '/' },
+    { key: 'top', label: '热门', href: '/category/top' },
+    { key: 'new', label: '最新', href: '/category/new' },
+    { key: 'best', label: '最佳', href: '/category/best' },
+    { key: 'ask', label: '问答', href: '/category/ask' },
+    { key: 'show', label: '展示', href: '/category/show' },
+    { key: 'job', label: '工作', href: '/category/job' },
   ]
 
   return (

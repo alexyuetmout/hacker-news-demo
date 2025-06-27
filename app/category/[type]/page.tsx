@@ -3,7 +3,7 @@ import { Header } from '@/components/header'
 import { StoryList } from '@/components/story-list'
 import { DataService } from '@/lib/services/data'
 import { Loader2 } from 'lucide-react'
-import { getStoryTypeLabel } from '@/lib/utils'
+import { getCategoryLabel } from '@/lib/utils'
 
 const dataService = new DataService()
 
@@ -13,9 +13,9 @@ interface CategoryPageProps {
   params: { type: string }
 }
 
-async function getCategoryData(type: string) {
+async function getCategoryData(source: string) {
   const [storiesData, lastUpdateTime] = await Promise.all([
-    dataService.getStories(type, 1, 20),
+    dataService.getStories(source, 1, 20),
     dataService.getLastUpdateTime()
   ])
   
@@ -42,7 +42,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const { type } = params
   const { stories, total, hasMore, lastUpdateTime } = await getCategoryData(type)
   
-  const categoryLabel = getStoryTypeLabel(type)
+  const categoryLabel = getCategoryLabel(type)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,10 +55,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               {categoryLabel}
             </h1>
             <p className="text-gray-600">
-              {type === 'ask' && '社区问答和讨论'}
-              {type === 'show' && '项目展示和分享'}
+              {type === 'new' && '最新发布的文章和讨论'}
+              {type === 'best' && '社区评分最高的优质内容'}
+              {type === 'ask' && '社区问答和求助讨论'}
+              {type === 'show' && '项目展示和作品分享'}
               {type === 'job' && '技术职位和招聘信息'}
-              {type === 'story' && '技术文章和新闻'}
             </p>
           </div>
 
@@ -67,7 +68,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               initialStories={stories}
               initialTotal={total}
               initialHasMore={hasMore}
-              type={type}
+              source={type}
             />
           </Suspense>
         </div>

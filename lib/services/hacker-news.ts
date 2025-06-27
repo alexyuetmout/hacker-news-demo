@@ -1,21 +1,21 @@
 const HN_API_BASE = 'https://hacker-news.firebaseio.com/v0'
 
 export interface HNItem {
-  id: number
-  deleted?: boolean
-  type: 'job' | 'story' | 'comment' | 'poll' | 'pollopt'
-  by?: string
-  time?: number
-  text?: string
-  dead?: boolean
-  parent?: number
-  poll?: number
-  kids?: number[]
-  url?: string
-  score?: number
-  title?: string
-  parts?: number[]
-  descendants?: number
+  id: number                                                        // 条目ID
+  deleted?: boolean                                                 // 是否已删除
+  type: 'job' | 'story' | 'comment' | 'poll' | 'pollopt'          // 类型：招聘|文章|评论|投票|投票选项
+  by?: string                                                       // 作者用户名
+  time?: number                                                     // 发布时间（Unix时间戳）
+  text?: string                                                     // 文本内容（HTML格式）
+  dead?: boolean                                                    // 是否被标记为死链接
+  parent?: number                                                   // 父级条目ID（用于评论）
+  poll?: number                                                     // 所属投票的ID
+  kids?: number[]                                                   // 子条目ID列表（评论或投票选项）
+  url?: string                                                      // 外部链接URL
+  score?: number                                                    // 分数/点赞数
+  title?: string                                                    // 标题
+  parts?: number[]                                                  // 投票选项ID列表
+  descendants?: number                                              // 后代评论总数
 }
 
 export class HackerNewsService {
