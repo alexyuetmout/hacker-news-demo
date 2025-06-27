@@ -1,0 +1,33 @@
+{
+  "crons": [
+    {
+      "path": "/api/sync?type=top&limit=100",
+      "schedule": "0 */1 * * *"
+    },
+    {
+      "path": "/api/sync?type=new&limit=50",
+      "schedule": "15 */2 * * *"
+    },
+    {
+      "path": "/api/sync?type=best&limit=50",
+      "schedule": "30 */4 * * *"
+    },
+    {
+      "path": "/api/sync?type=ask&limit=50",
+      "schedule": "45 */3 * * *"
+    },
+    {
+      "path": "/api/sync?type=show&limit=50",
+      "schedule": "0 */3 * * *"
+    },
+    {
+      "path": "/api/sync?type=job&limit=30",
+      "schedule": "15 */6 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/sync/route.ts": {
+      "maxDuration": 300
+    }
+  }
+} 
